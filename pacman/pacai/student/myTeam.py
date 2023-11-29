@@ -2,6 +2,7 @@
 # from pacai.util import reflection
 import pdb
 from pacai.agents.capture.capture import CaptureAgent
+from pacai.agents.capture.defense import DefensiveReflexAgent
 import random
 from pacai.core import distance
 from pacai.core.directions import Directions
@@ -20,12 +21,12 @@ def createTeam(firstIndex, secondIndex, isRed,
     """
 
     return [
-        DummyAgent(firstIndex),
-        DummyAgent(secondIndex),
+        OffenseAgent(firstIndex),
+        DefenseAgent(secondIndex),
     ]
 
 
-class DummyAgent(CaptureAgent):
+class OffenseAgent(CaptureAgent):
     """
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
@@ -125,12 +126,17 @@ class DummyAgent(CaptureAgent):
         if oldState is not None:
             oldNumFood = self.getFood(oldState).asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
-            foodScore += 50  # Give extra points if the amount of food has gone down
+            foodScore += 20  # Give extra points if the amount of food has gone down
         if len(numFood) > 0:  # if food is still on the map
-            foodScore += 100 / len(numFood)  # less food = better score
-            foodScore += 10 / self.getNearestFood(gameState, position)  # smaller bonus score based on path to nearest food
+            foodScore += 200 / len(numFood)  # less food = better score
+            foodScore += 15 / self.getNearestFood(gameState, position)  # smaller bonus score based on path to nearest food
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
+
+        closestCapsule = self.getNearestCapsule(gameState, position)
+
+        
+        
         return foodScore
 
     def getGhostScore(self, gameState, position):
@@ -211,6 +217,14 @@ class DummyAgent(CaptureAgent):
             if distance < closestFood:
                 closestFood = distance
         return closestFood
+    
+    def getNearestCapsule(self, gameState, agentPos):
+        closestCapsule = float('inf')
+        for capsule in self.getCapsules(gameState):
+            distance = self.getMazeDistance(agentPos, capsule)
+            if distance < closestCapsule:
+                closestCapsule = distance
+        return closestCapsule
 
     def getEnemyAgentStates(self, gameState):
         '''
@@ -223,7 +237,7 @@ class DummyAgent(CaptureAgent):
         return states
 
 
-class DefenseAgent(DummyAgent):
+class DefenseAgent(DefensiveReflexAgent):
     """Defends team side from enemy pacmans"""
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
