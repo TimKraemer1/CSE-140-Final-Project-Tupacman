@@ -99,6 +99,25 @@ class DummyAgent(CaptureAgent):
         return (best_value, best_action)
 
     def getFoodScore(self, gameState, position):
+        """
+        Calculate a heuristic score based on the amount and proximity of food.
+
+        Parameters:
+        - self: The current instance of the Pacman agent.
+        - gameState: The current state of the game.
+        - position: The current position of the Pacman agent.
+
+        Returns:
+        - foodScore (float): The calculated heuristic score for the current game state.
+          Higher scores indicate more favorable conditions.
+
+        The function considers the number of remaining food pellets on the map and
+        the proximity of the nearest food pellet to the Pacman agent. The score is
+        higher when there is less food remaining on the map and when the Pacman agent
+        is closer to the nearest food pellet. If no food is present, indicating that
+        the game has finished, a large positive value is returned to represent a
+        favorable outcome.
+        """
         foodScore = 0
         numFood = self.getFood(gameState).asList()
         if len(numFood) > 0:  # if food is still on the map
@@ -110,6 +129,25 @@ class DummyAgent(CaptureAgent):
         return foodScore
 
     def getGhostScore(self, gameState, position):
+        """
+        Calculate a heuristic score based on the proximity and state of enemy ghosts.
+
+        Parameters:
+        - self: The current instance of the Pacman agent.
+        - gameState: The current state of the game.
+        - position: The current position of the Pacman agent.
+
+        Returns:
+        - ghostScore (float): The calculated heuristic score for the current game state.
+          Higher scores indicate more favorable conditions.
+
+        The function considers the positions and states of enemy ghosts. It assigns scores
+        based on the proximity of ghosts to the Pacman agent and whether the ghosts are
+        currently scared. A higher negative score is assigned when the Pacman agent is close
+        to a non-scared ghost, and a smaller negative bonus is given for distance to scared
+        ghosts. The function aims to encourage the Pacman agent to avoid non-scared ghosts
+        and possibly target scared ghosts.
+        """
         ghostScore = 0
         ghostStates = self.getEnemyAgentStates(gameState)
         for gState in ghostStates:  # for all the ghosts
@@ -126,8 +164,25 @@ class DummyAgent(CaptureAgent):
         return ghostScore
 
     def getCapsuleScore(self, gameState, position):
+        """
+        Calculate a heuristic score based on the proximity to power capsules.
+
+        Parameters:
+        - self: The current instance of the Pacman agent.
+        - gameState: The current state of the game.
+        - position: The current position of the Pacman agent.
+
+        Returns:
+        - capScore (float): The calculated heuristic score for the current game state.
+          Higher scores indicate more favorable conditions.
+
+        The function considers the positions of power capsules. It assigns scores based
+        on the proximity of the Pacman agent to the power capsules. A higher score is
+        assigned when the Pacman agent is closer to a power capsule, encouraging the
+        agent to prioritize reaching and consuming capsules during gameplay.
+        """
         capScore = 0
-        capsules = self.getCapsules(currentGameState)  # Using self.getCapsules returns only the capsules on the enemy side of the board
+        capsules = self.getCapsules(gameState)  # Using self.getCapsules returns only the capsules on the enemy side of the board
         for capsule in capsules:  # more score when closer to capsules
             capScore += 15 / self.getMazeDistance(position, capsule)
         return capScore
