@@ -1,4 +1,6 @@
+
 # from pacai.util import reflection
+import pdb
 from pacai.agents.capture.capture import CaptureAgent
 import random
 from pacai.core import distance
@@ -18,8 +20,8 @@ def createTeam(firstIndex, secondIndex, isRed,
     """
 
     return [
-        OffenseAgent(firstIndex),
-        OffenseAgent(secondIndex),
+        DummyAgent(firstIndex),
+        DummyAgent(secondIndex),
     ]
 
 
@@ -98,11 +100,10 @@ class DummyAgent(CaptureAgent):
 
         
     def evaluationFunction(self, currentGameState):
-
         position = currentGameState.getAgentPosition(self.index)
         numFood = self.getFood(currentGameState).asList()
-        # ghostStates = currentGameState.getGhostStates()
-        capsules = currentGameState.getCapsules(currentGameState)
+        ghostStates = self.getEnemyAgentStates(currentGameState)
+        capsules = self.getCapsules(currentGameState)  # Using self.getCapsules returns only the capsules on the enemy side of the board
 
         foodScore = 0  # first score to check is food
         if len(numFood) > 0:  # if food is still on the map
@@ -112,30 +113,46 @@ class DummyAgent(CaptureAgent):
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
 
-        # ghostScore = 0  # second score to check is ghosts
-        # for gState in ghostStates:  # for all the ghosts
-        #     gDistance = distance.manhattan(position, gState.getPosition())  # get distance to ghost
-        #     gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
-        # if gDistance < 2:  # if next to ghost REALLY BAD unless the scare timer is long enough
-        #     ghostScore -= 1000 if gScare <= gDistance else -500  # to reach ghost then go for ghost
-        # else:  # otherwise give a smaller bonus for distance to ghosts/scared ghosts
-        #     ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
+        ghostScore = 0  # second score to check is ghosts
+        for gState in ghostStates:  # for all the ghosts
+            if not gState.isGhost():
+                continue  # Ignore all non-ghosts for right now
+            # TODO: Change later?
 
+            gDistance = self.getMazeDistance(position, gState.getPosition())  # get distance to ghost
+            gScare = gState.getScaredTimer() # get if/how long the ghost is scared
+            if gDistance < 2:  # if next to ghost REALLY BAD unless the scare timer is long enough
+                 ghostScore -= 1000 if gScare <= gDistance else -500  # to reach ghost then go for ghost
+            else:  # otherwise give a smaller bonus for distance to ghosts/scared ghosts
+                 ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
+        
         capScore = 0  # third score to check is capsules
         for capsule in capsules:  # more score when closer to capsules
-            capScore += 15 / distance.maze(capsule, position, currentGameState)
-
-        currentGameState.addScore(foodScore + capScore)  # add all scores together
+            capScore += 15 / self.getMazeDistance(position, capsule)
+        print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
+        currentGameState.addScore(foodScore + capScore + ghostScore)  # add all scores together
         return currentGameState.getScore()
 
     def getNearestFood(self, gameState, agentPos):
+        '''
+        returns the maze distance (int) to the food closest to agentPos
+        '''
         closestFood = float('inf')
         for food in self.getFood(gameState).asList():
             distance = self.getMazeDistance(agentPos, food)
             if distance < closestFood:
                 closestFood = distance
-    
         return closestFood
+
+    def getEnemyAgentStates(self, gameState):
+        '''
+        Returns a list of enemy agents' states
+        '''
+        enemies = self.getOpponents(gameState)
+        states = []
+        for agent in enemies:
+            states.append(gameState.getAgentState(agent))
+        return states
 
 
 class DefenseAgent(DummyAgent):
