@@ -51,7 +51,7 @@ class DummyAgent(CaptureAgent):
     def chooseAction(self, gameState):
         val,action = self.alphaBeta(gameState, self.index, 0)
         return action
-    
+
     def alphaBeta(self,gameState,index,depth):
         if depth == self.MAX_DEPTH or gameState.isOver():
             return self.evaluationFunction(gameState),None
@@ -59,7 +59,7 @@ class DummyAgent(CaptureAgent):
             return self.maxVal(gameState, index, depth)
         else:
             return self.minVal(gameState, index, depth)
-        
+
     def maxVal(self, gameState, index, depth):
         best_value = float('-inf')
         best_action = None
@@ -96,24 +96,22 @@ class DummyAgent(CaptureAgent):
                 self.beta = min(value, self.beta)
                 if value <= self.alpha:
                     break
-        return (best_value, best_action)    
+        return (best_value, best_action)
 
-        
-    def evaluationFunction(self, currentGameState):
-        position = currentGameState.getAgentPosition(self.index)
-        numFood = self.getFood(currentGameState).asList()
-        ghostStates = self.getEnemyAgentStates(currentGameState)
-        capsules = self.getCapsules(currentGameState)  # Using self.getCapsules returns only the capsules on the enemy side of the board
-
-        foodScore = 0  # first score to check is food
+    def getFoodScore(self, gameState, position):
+        foodScore = 0
+        numFood = self.getFood(gameState).asList()
         if len(numFood) > 0:  # if food is still on the map
             foodScore += 100 / len(numFood)  # less food = better score
             # path = uniformCostSearch(AnyFoodSearchProblem(currentGameState))
-            foodScore += 10 / self.getNearestFood(currentGameState, position)  # smaller bonus score based on path to nearest food
+            foodScore += 10 / self.getNearestFood(gameState, position)  # smaller bonus score based on path to nearest food
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
+        return foodScore
 
-        ghostScore = 0  # second score to check is ghosts
+    def getGhostScore(self, gameState, position):
+        ghostScore = 0
+        ghostStates = self.getEnemyAgentStates(gameState)
         for gState in ghostStates:  # for all the ghosts
             if not gState.isGhost():
                 continue  # Ignore all non-ghosts for right now
@@ -125,10 +123,20 @@ class DummyAgent(CaptureAgent):
                  ghostScore -= 1000 if gScare <= gDistance else -500  # to reach ghost then go for ghost
             else:  # otherwise give a smaller bonus for distance to ghosts/scared ghosts
                  ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
-        
-        capScore = 0  # third score to check is capsules
+        return ghostScore
+
+    def getCapsuleScore(self, gameState, position):
+        capScore = 0
+        capsules = self.getCapsules(currentGameState)  # Using self.getCapsules returns only the capsules on the enemy side of the board
         for capsule in capsules:  # more score when closer to capsules
             capScore += 15 / self.getMazeDistance(position, capsule)
+        return capScore
+
+    def evaluationFunction(self, currentGameState):
+        position = currentGameState.getAgentPosition(self.index)
+        foodScore = self.getFoodScore(currentGameState, position)
+        ghostScore = self.getGhostScore(currentGameState, position)
+        capScore = self.getCapsuleScore(currentGameState, position)
         print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
         currentGameState.addScore(foodScore + capScore + ghostScore)  # add all scores together
         return currentGameState.getScore()
@@ -198,7 +206,7 @@ class DefenseAgent(DummyAgent):
         for capsule in capsules:  # more score when closer to capsules
             capScore += 15 / distance.maze(capsule, position, currentGameState)
 
-        
+
 
         currentGameState.addScore(foodScore + capScore)  # add all scores together
         return currentGameState.getScore()
@@ -209,5 +217,5 @@ class DefenseAgent(DummyAgent):
             distance = self.getMazeDistance(agentPos, food)
             if distance < closestFood:
                 closestFood = distance
-    
+
         return closestFood
