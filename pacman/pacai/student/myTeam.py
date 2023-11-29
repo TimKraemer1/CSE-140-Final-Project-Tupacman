@@ -126,16 +126,16 @@ class OffenseAgent(CaptureAgent):
         if oldState is not None:
             oldNumFood = self.getFood(oldState).asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
-            foodScore += 20  # Give extra points if the amount of food has gone down
+            foodScore += 30  # Give extra points if the amount of food has gone down
         if len(numFood) > 0:  # if food is still on the map
-            foodScore += 200 / len(numFood)  # less food = better score
-            foodScore += 15 / self.getNearestFood(gameState, position)  # smaller bonus score based on path to nearest food
+            foodScore += 300 / len(numFood)  # less food = better score
+            farthestFood = self.getFarthestFood(gameState, position)
+            closestFood = self.getNearestFood(gameState, position)
+            foodScore -= (2*farthestFood + 3*closestFood)
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
 
         closestCapsule = self.getNearestCapsule(gameState, position)
-
-        
         
         return foodScore
 
@@ -217,6 +217,14 @@ class OffenseAgent(CaptureAgent):
             if distance < closestFood:
                 closestFood = distance
         return closestFood
+    
+    def getFarthestFood(self, gameState, agentPos):
+        farthestFood = float('-inf')
+        for food in self.getFood(gameState).asList():
+            distance = self.getMazeDistance(agentPos, food)
+            if distance > farthestFood:
+                farthestFood = distance
+        return farthestFood
     
     def getNearestCapsule(self, gameState, agentPos):
         closestCapsule = float('inf')
