@@ -120,9 +120,11 @@ class DummyAgent(CaptureAgent):
         """
         foodScore = 0
         numFood = self.getFood(gameState).asList()
+        oldNumFood = self.getFood(self.getPreviousObservation()).asList
+        if len(numFood) < len(oldNumFood):
+            foodScore += 50  # add points if we made the number of pellets go down? 
         if len(numFood) > 0:  # if food is still on the map
             foodScore += 100 / len(numFood)  # less food = better score
-            # path = uniformCostSearch(AnyFoodSearchProblem(currentGameState))
             foodScore += 10 / self.getNearestFood(gameState, position)  # smaller bonus score based on path to nearest food
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
