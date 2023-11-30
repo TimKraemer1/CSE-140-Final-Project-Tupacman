@@ -1,13 +1,13 @@
 
 # from pacai.util import reflection
-import pdb
+# import pdb
 from pacai.agents.capture.capture import CaptureAgent
 from pacai.agents.capture.defense import DefensiveReflexAgent
-import random
+# import random
 from pacai.core import distance
 from pacai.core.directions import Directions
-from pacai.student.search import uniformCostSearch
-from pacai.student.searchAgents import AnyFoodSearchProblem
+# from pacai.student.search import uniformCostSearch
+# from pacai.student.searchAgents import AnyFoodSearchProblem
 
 
 def createTeam(firstIndex, secondIndex, isRed,
@@ -37,6 +37,7 @@ class OffenseAgent(CaptureAgent):
         super().__init__(index, **kwargs)
         self.alpha = float('-inf')
         self.beta = float('inf')
+
     def registerInitialState(self, gameState):
         """
         This method handles the initial setup of the agent and populates useful fields,
@@ -50,12 +51,12 @@ class OffenseAgent(CaptureAgent):
         # Your initialization code goes here, if you need any.
 
     def chooseAction(self, gameState):
-        val,action = self.alphaBeta(gameState, self.index, 0)
+        val, action = self.alphaBeta(gameState, self.index, 0)
         return action
 
-    def alphaBeta(self,gameState,index,depth):
+    def alphaBeta(self, gameState, index, depth):
         if depth == self.MAX_DEPTH or gameState.isOver():
-            return self.evaluationFunction(gameState),None
+            return self.evaluationFunction(gameState), None
         if index in self.getTeam(gameState):
             return self.maxVal(gameState, index, depth)
         else:
@@ -68,7 +69,7 @@ class OffenseAgent(CaptureAgent):
         for action in legal_actions:
             if action == Directions.STOP:
                 continue
-            successor = gameState.generateSuccessor(index,action)
+            successor = gameState.generateSuccessor(index, action)
             value, _ = self.alphaBeta(successor, index + 1, depth)
             if value > best_value:
                 best_value = value
@@ -131,11 +132,11 @@ class OffenseAgent(CaptureAgent):
             foodScore += 300 / len(numFood)  # less food = better score
             farthestFood = self.getFarthestFood(gameState, position)
             closestFood = self.getNearestFood(gameState, position)
-            foodScore -= (2*farthestFood + 3*closestFood)
+            foodScore -= (2 * farthestFood + 3 * closestFood)
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
 
-        closestCapsule = self.getNearestCapsule(gameState, position)
+        # closestCapsule = self.getNearestCapsule(gameState, position)
         
         return foodScore
 
@@ -166,12 +167,12 @@ class OffenseAgent(CaptureAgent):
                 continue  # Ignore all non-ghosts for right now
             # TODO: Change later?
 
-            gDistance = self.getMazeDistance(position, gState.getPosition())  # get distance to ghost
-            gScare = gState.getScaredTimer() # get if/how long the ghost is scared
+            gDistance = self.getMazeDistance(position, gState.getPosition())
+            gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
             if gDistance < 2:  # if next to ghost REALLY BAD unless the scare timer is long enough
-                 ghostScore -= 1000 if gScare <= gDistance else -500  # to reach ghost then go for ghost
+                ghostScore -= 1000 if gScare <= gDistance else -500
             else:  # otherwise give a smaller bonus for distance to ghosts/scared ghosts
-                 ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
+                ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
         return ghostScore
 
     def getCapsuleScore(self, gameState, position):
@@ -193,7 +194,8 @@ class OffenseAgent(CaptureAgent):
         agent to prioritize reaching and consuming capsules during gameplay.
         """
         capScore = 0
-        capsules = self.getCapsules(gameState)  # Using self.getCapsules returns only the capsules on the enemy side of the board
+        # Using self.getCapsules returns only the capsules on the enemy side of the board
+        capsules = self.getCapsules(gameState)
         for capsule in capsules:  # more score when closer to capsules
             capScore += 15 / self.getMazeDistance(position, capsule)
         return capScore
@@ -271,24 +273,23 @@ class DefenseAgent(DefensiveReflexAgent):
         if len(numFood) > 0:  # if food is still on the map
             foodScore += 100 / len(numFood)  # less food = better score
             # path = uniformCostSearch(AnyFoodSearchProblem(currentGameState))
-            foodScore += 10 / self.getNearestFood(currentGameState, position)  # smaller bonus score based on path to nearest food
+            # smaller bonus score based on path to nearest food
+            foodScore += 10 / self.getNearestFood(currentGameState, position)
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
 
         # ghostScore = 0  # second score to check is ghosts
         # for gState in ghostStates:  # for all the ghosts
-        #     gDistance = distance.manhattan(position, gState.getPosition())  # get distance to ghost
-        #     gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
+        # gDistance = distance.manhattan(position, gState.getPosition())  # get distance to ghost
+        # gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
         # if gDistance < 2:  # if next to ghost REALLY BAD unless the scare timer is long enough
-        #     ghostScore -= 1000 if gScare <= gDistance else -500  # to reach ghost then go for ghost
-        # else:  # otherwise give a smaller bonus for distance to ghosts/scared ghosts
-        #     ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
+        # ghostScore -= 1000 if gScare <= gDistance else -500  # to reach ghost then go for ghost
+        # else: otherwise give a smaller bonus for distance to ghosts/scared ghosts
+        # ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
 
         capScore = 0  # third score to check is capsules
         for capsule in capsules:  # more score when closer to capsules
             capScore += 15 / distance.maze(capsule, position, currentGameState)
-
-
 
         currentGameState.addScore(foodScore + capScore)  # add all scores together
         return currentGameState.getScore()
