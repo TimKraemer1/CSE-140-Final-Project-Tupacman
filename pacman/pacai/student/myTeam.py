@@ -176,16 +176,18 @@ class OffenseAgent(minimaxCaptureAgent):
         for gState in ghostStates:  # for all the ghosts
             if not gState.isGhost():
                 continue  # Ignore all non-ghosts for right now
-            # TODO: Change later?
-
-            gDistance = self.getMazeDistance(position, gState.getPosition())
+            ghostPos = gState.getPosition()
+            gDistance = self.getMazeDistance(position, ghostPos)
             gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
-            if (
-                gDistance < 2
-            ):  # if next to ghost REALLY BAD unless the scare timer is long enough
-                ghostScore -= 1000 if gScare <= gDistance else -500
-            else:  # otherwise give a smaller bonus for distance to ghosts/scared ghosts
-                ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
+            if gScare != 0:  # Scared ghosts should be encouraged
+                ghostScore += 10
+            if gScare < gDistance:  # The ghost is scared for less turns than it takes to get to
+                ghostScore -= 10 / gDistance
+            else:
+                ghostScore += 10/gDistance
+            if gDistance < 5 and gScare <= gDistance:
+                if (gameState.isOnRedSide(ghostPos) and gameState.isOnBlueSide(position)) or (gameState.isOnBlueSide(ghostPos) and gameState.isOnRedSide(position)):
+                    ghostScore -= 25  # Should hopefully fix it from staying in the same spot looking at an enemy ghost
         return ghostScore
 
     def getCapsuleScore(self, gameState, position):
