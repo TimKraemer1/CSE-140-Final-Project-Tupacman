@@ -32,7 +32,7 @@ def createTeam(
 
 
 class minimaxCaptureAgent(CaptureAgent):
-    MAX_DEPTH = 2
+    MAX_DEPTH = 3
 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
@@ -108,6 +108,42 @@ class minimaxCaptureAgent(CaptureAgent):
     def evaluationFunction(self, currentGameState):
         return currentGameState.getScore()
 
+    def getNearestFood(self, gameState, agentPos):
+        """
+        returns the maze distance (int) to the food closest to agentPos
+        """
+        closestFood = float("inf")
+        for food in self.getFood(gameState).asList():
+            distance = self.getMazeDistance(agentPos, food)
+            if distance < closestFood:
+                closestFood = distance
+        return closestFood
+
+    def getFarthestFood(self, gameState, agentPos):
+        farthestFood = float("-inf")
+        for food in self.getFood(gameState).asList():
+            distance = self.getMazeDistance(agentPos, food)
+            if distance > farthestFood:
+                farthestFood = distance
+        return farthestFood
+
+    def getNearestCapsule(self, gameState, agentPos):
+        closestCapsule = float("inf")
+        for capsule in self.getCapsules(gameState):
+            distance = self.getMazeDistance(agentPos, capsule)
+            if distance < closestCapsule:
+                closestCapsule = distance
+        return closestCapsule
+
+    def getEnemyAgentStates(self, gameState):
+        """
+        Returns a list of enemy agents' states
+        """
+        enemies = self.getOpponents(gameState)
+        states = []
+        for agent in enemies:
+            states.append(gameState.getAgentState(agent))
+        return states
 
 class OffenseAgent(minimaxCaptureAgent):
     """
@@ -186,12 +222,14 @@ class OffenseAgent(minimaxCaptureAgent):
             if gScare != 0:  # Scared ghosts should be encouraged
                 ghostScore += 10
             if gScare < gDistance:  # The ghost is scared for less turns than it takes to get to
-                ghostScore -= 10 / gDistance
+                ghostScore -= 30 / gDistance
             else:
                 ghostScore += 10/gDistance
             if gDistance < 5 and gScare <= gDistance:
                 if (gameState.isOnRedSide(ghostPos) and gameState.isOnBlueSide(position)) or (gameState.isOnBlueSide(ghostPos) and gameState.isOnRedSide(position)):
-                    ghostScore -= 25  # Should hopefully fix it from staying in the same spot looking at an enemy ghost
+                    ghostScore -= 50  # Should hopefully fix it from staying in the same spot looking at an enemy ghost
+                else:
+                    ghostScore -= 30
         return ghostScore
 
     def getCapsuleScore(self, gameState, position):
@@ -230,42 +268,6 @@ class OffenseAgent(minimaxCaptureAgent):
         )  # add all scores together
         return currentGameState.getScore()
 
-    def getNearestFood(self, gameState, agentPos):
-        """
-        returns the maze distance (int) to the food closest to agentPos
-        """
-        closestFood = float("inf")
-        for food in self.getFood(gameState).asList():
-            distance = self.getMazeDistance(agentPos, food)
-            if distance < closestFood:
-                closestFood = distance
-        return closestFood
-
-    def getFarthestFood(self, gameState, agentPos):
-        farthestFood = float("-inf")
-        for food in self.getFood(gameState).asList():
-            distance = self.getMazeDistance(agentPos, food)
-            if distance > farthestFood:
-                farthestFood = distance
-        return farthestFood
-
-    def getNearestCapsule(self, gameState, agentPos):
-        closestCapsule = float("inf")
-        for capsule in self.getCapsules(gameState):
-            distance = self.getMazeDistance(agentPos, capsule)
-            if distance < closestCapsule:
-                closestCapsule = distance
-        return closestCapsule
-
-    def getEnemyAgentStates(self, gameState):
-        """
-        Returns a list of enemy agents' states
-        """
-        enemies = self.getOpponents(gameState)
-        states = []
-        for agent in enemies:
-            states.append(gameState.getAgentState(agent))
-        return states
 
 
 class DefenseAgent(DefensiveReflexAgent):
@@ -286,8 +288,46 @@ class DefenseAgent(DefensiveReflexAgent):
     
     def evaluationFunction(self, currentGameState):
         position = currentGameState.getAgentPosition(self.index)
+        enemyScore = self.getEnemyScore(currentGameState, position)
+        posScore = self.getPosScore(currentGameState, position)
+        return enemyScore + posScore
     
+    def getPosScore(self, gameState, position):
+        score = 0
+        if self.red:
+            if gameState.isOnBlueSide(position):
+                score -= 100
+            else:
+                score += position[0] + position[1]
+        else:
+            if gameState.isOnRedSide(position):
+                score -= 100
+            else:
+                score += (99 - (position[0] + position[1]))
+        return score
+
+                
+
     def getEnemyScore(self, gameState, position):
+        score = 0 
+        enemyState = self.getEnemyAgentStates(gameState)
+        skipCount = 0
+        for enemy in enemyState:
+            if not enemy.isPacman():
+                skipCount += 1
+                continue  # Ignore ghosts for now
+            enemyPos = enemy.getPosition()
+            dist = self.getMazeDistance(enemyPos, position)
+            if self.red:
+                if gameState.isOnBlueSide(enemyPos):
+                    score -= 25
+            else:
+                if gameState.isOnRedSide(enemyPos):
+                    score -= 25
+            score += 100/dist
+        if skipCount == 2:
+            score += 100  # all enemies are on their own side. Life is good.
+        return score
 
 
 
