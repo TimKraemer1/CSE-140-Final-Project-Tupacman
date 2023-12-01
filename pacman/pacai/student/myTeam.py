@@ -71,7 +71,11 @@ class minimaxCaptureAgent(CaptureAgent):
             if action == Directions.STOP:
                 continue
             successor = gameState.generateSuccessor(index, action)
-            value, _ = self.alphaBeta(successor, index + 1, depth)
+            max_agents = gameState.getNumAgents()
+            if index == max_agents - 1:
+                value, _ = self.alphaBeta(successor, 0, depth + 1)
+            else:
+                value, _ = self.alphaBeta(successor, index + 1, depth)
             if value > best_value:
                 best_value = value
                 best_action = action
