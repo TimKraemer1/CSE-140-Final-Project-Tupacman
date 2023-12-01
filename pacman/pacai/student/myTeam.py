@@ -313,8 +313,8 @@ class DefenseAgent(minimaxCaptureAgent):
             if gameState.isOnRedSide(position):
                 score -= 1000
             else:
-                score += x/position[0] if postion[0] != 1 else 0 
-                score += y/position[1] if postion[1] != 1 else 0
+                score += x/position[0] if position[0] != 1 else 0 
+                score += y/position[1] if position[1] != 1 else 0
         return score
 
     def getEnemyScore(self, gameState, position):
