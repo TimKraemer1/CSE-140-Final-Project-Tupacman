@@ -1,5 +1,5 @@
 # from pacai.util import reflection
-# import pdb
+import pdb
 from pacai.agents.capture.capture import CaptureAgent
 from pacai.agents.capture.defense import DefensiveReflexAgent
 
@@ -56,7 +56,6 @@ class minimaxCaptureAgent(CaptureAgent):
         return action
 
     def alphaBeta(self, gameState, index, depth):
-        print(index)
         if depth == self.MAX_DEPTH or gameState.isOver():
             return self.evaluationFunction(gameState), None
         if index in self.getTeam(gameState):
@@ -184,7 +183,7 @@ class OffenseAgent(minimaxCaptureAgent):
             foodScore += 300 / len(numFood)  # less food = better score
             farthestFood = self.getFarthestFood(gameState, position)
             closestFood = self.getNearestFood(gameState, position)
-            foodScore -= 2 * farthestFood + 3 * closestFood
+            foodScore -= 1.7 * farthestFood + 3 * closestFood
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
 
@@ -220,8 +219,6 @@ class OffenseAgent(minimaxCaptureAgent):
             ghostPos = gState.getPosition()
             gDistance = self.getMazeDistance(position, ghostPos)
             gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
-            if gScare != 0:  # Scared ghosts should be encouraged
-                ghostScore += 10
             if gScare < gDistance:  # The ghost is scared for less turns than it takes to get to
                 ghostScore -= 30 / gDistance
             else:
@@ -263,15 +260,15 @@ class OffenseAgent(minimaxCaptureAgent):
         foodScore = self.getFoodScore(currentGameState, position)
         ghostScore = self.getGhostScore(currentGameState, position)
         capScore = self.getCapsuleScore(currentGameState, position)
-        print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
+        #print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
         currentGameState.addScore(
-            foodScore + capScore + ghostScore
+           1.3 * foodScore + .5 * capScore + 1.2*ghostScore
         )  # add all scores together
         return currentGameState.getScore()
 
 
 
-class DefenseAgent(DefensiveReflexAgent):
+class DefenseAgent(minimaxCaptureAgent):
     """Defends team side from enemy pacmans"""
 
     def __init__(self, index, **kwargs):
@@ -286,31 +283,42 @@ class DefenseAgent(DefensiveReflexAgent):
         """
 
         super().registerInitialState(gameState)
-    
+
     def evaluationFunction(self, currentGameState):
         position = currentGameState.getAgentPosition(self.index)
         enemyScore = self.getEnemyScore(currentGameState, position)
         posScore = self.getPosScore(currentGameState, position)
-        return enemyScore + posScore
-    
-    def getPosScore(self, gameState, position):
+        foodScore = self.getFoodScore(currentGameState, position)
+        foo = 1.3 * enemyScore + .2 * posScore + 2 * foodScore
+        return foo
+
+    def getFoodScore(self, gameState, position):
+        food = self.getFoodYouAreDefending(gameState).asList()
         score = 0
-        if self.red:
-            if gameState.isOnBlueSide(position):
-                score -= 100
-            else:
-                score += position[0] + position[1]
-        else:
-            if gameState.isOnRedSide(position):
-                score -= 100
-            else:
-                score += (99 - (position[0] + position[1]))
+        score += len(food)
         return score
 
-                
+    def getPosScore(self, gameState, position):
+        score = 0
+        layout = gameState.getInitialLayout()
+        x = layout.getWidth() / 2
+        y = layout.height / 2
+        if self.red:
+            if gameState.isOnBlueSide(position):
+                score -= 1000
+            else:
+                score += x/position[0] if position[0] != 1 else 0 
+                score += y/position[1] if position[1] != 1 else 0
+        else:
+            if gameState.isOnRedSide(position):
+                score -= 1000
+            else:
+                score += x/position[0] if postion[0] != 1 else 0 
+                score += y/position[1] if postion[1] != 1 else 0
+        return score
 
     def getEnemyScore(self, gameState, position):
-        score = 0 
+        score = 0
         enemyState = self.getEnemyAgentStates(gameState)
         skipCount = 0
         for enemy in enemyState:
@@ -329,6 +337,3 @@ class DefenseAgent(DefensiveReflexAgent):
         if skipCount == 2:
             score += 100  # all enemies are on their own side. Life is good.
         return score
-
-
-
