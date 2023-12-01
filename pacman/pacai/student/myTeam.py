@@ -268,7 +268,7 @@ class OffenseAgent(minimaxCaptureAgent):
         return states
 
 
-class DefenseAgent(minimaxCaptureAgent):
+class DefenseAgent(DefensiveReflexAgent):
     """Defends team side from enemy pacmans"""
 
     def __init__(self, index, **kwargs):
