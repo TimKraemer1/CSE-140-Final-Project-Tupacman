@@ -56,6 +56,7 @@ class minimaxCaptureAgent(CaptureAgent):
         return action
 
     def alphaBeta(self, gameState, index, depth):
+        print(index)
         if depth == self.MAX_DEPTH or gameState.isOver():
             return self.evaluationFunction(gameState), None
         if index in self.getTeam(gameState):
