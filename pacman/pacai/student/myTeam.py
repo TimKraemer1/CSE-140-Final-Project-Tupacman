@@ -279,43 +279,11 @@ class DefenseAgent(minimaxCaptureAgent):
         """
 
         super().registerInitialState(gameState)
-
+    
     def evaluationFunction(self, currentGameState):
         position = currentGameState.getAgentPosition(self.index)
-        numFood = self.getFood(currentGameState).asList()
-        # ghostStates = currentGameState.getGhostStates()
-        capsules = self.getCapsules(currentGameState)
+    
+    def getEnemyScore(self, gameState, position):
 
-        foodScore = 0  # first score to check is food
-        if len(numFood) > 0:  # if food is still on the map
-            foodScore += 100 / len(numFood)  # less food = better score
-            # path = uniformCostSearch(AnyFoodSearchProblem(currentGameState))
-            # smaller bonus score based on path to nearest food
-            foodScore += 10 / self.getNearestFood(currentGameState, position)
-        else:  # if no food then that means game finished so make that big value
-            foodScore += 1000
 
-        # ghostScore = 0  # second score to check is ghosts
-        # for gState in ghostStates:  # for all the ghosts
-        # gDistance = distance.manhattan(position, gState.getPosition())  # get distance to ghost
-        # gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
-        # if gDistance < 2:  # if next to ghost REALLY BAD unless the scare timer is long enough
-        # ghostScore -= 1000 if gScare <= gDistance else -500  # to reach ghost then go for ghost
-        # else: otherwise give a smaller bonus for distance to ghosts/scared ghosts
-        # ghostScore -= 10 / gDistance if gScare <= gDistance else -30 / gDistance
 
-        capScore = 0  # third score to check is capsules
-        for capsule in capsules:  # more score when closer to capsules
-            capScore += 15 / distance.manhattan(capsule, position)
-
-        currentGameState.addScore(foodScore + capScore)  # add all scores together
-        return currentGameState.getScore()
-
-    def getNearestFood(self, gameState, agentPos):
-        closestFood = float("inf")
-        for food in self.getFood(gameState).asList():
-            distance = self.getMazeDistance(agentPos, food)
-            if distance < closestFood:
-                closestFood = distance
-
-        return closestFood
