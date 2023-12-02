@@ -96,7 +96,7 @@ class minimaxCaptureAgent(CaptureAgent):
                 continue
             successor = gameState.generateSuccessor(index, action)
             if (self.red and index == max_agents - 1) or increaseDepth:
-                value, _ = self.alphaBeta(successor, 0, depth + 1)
+                value, _ = self.alphaBeta(successor, 0 if not increaseDepth else 1, depth + 1)
             else:
                 value, _ = self.alphaBeta(successor, index + 1, depth)
             if value < best_value:
