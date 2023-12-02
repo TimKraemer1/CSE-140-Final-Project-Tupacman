@@ -149,6 +149,13 @@ class OffenseAgent(minimaxCaptureAgent):
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
     """
+    def __init__(self, index, **kwargs):
+        super().__init__(index, **kwargs)
+        self.weights = {
+                'foodWeight' : 1.7, 
+                'ghostWeight' : 1.2, 
+                'capsuleWeight' : .5
+                }
 
     def getFoodScore(self, gameState, position):
         """
@@ -261,7 +268,9 @@ class OffenseAgent(minimaxCaptureAgent):
         capScore = self.getCapsuleScore(currentGameState, position)
         #print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
         currentGameState.addScore(
-           1.3 * foodScore + .5 * capScore + 1.2*ghostScore
+           self.weights['foodWeight'] * foodScore +
+           self.weights['capsuleWeight'] * capScore +
+           self.weights['ghostWeight'] * ghostScore
         )  # add all scores together
         return currentGameState.getScore()
 
@@ -307,7 +316,7 @@ class DefenseAgent(minimaxCaptureAgent):
             score += 1
             score += self.getEnemyScore(position, currentGameState)
         if self.respawned(currentGameState):
-            print("RESPAWNED")
+        #    print("RESPAWNED")
             score = -1000
         # print(f"is pacman: {agentState.isPacman()}")
         # print(
