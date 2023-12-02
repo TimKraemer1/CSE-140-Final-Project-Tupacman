@@ -32,11 +32,14 @@ def createTeam(
 
 
 class minimaxCaptureAgent(CaptureAgent):
-    MAX_DEPTH = 2 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
         self.alpha = float("-inf")
         self.beta = float("inf")
+        
+        #CONSTANTS:
+        self.MAX_DEPTH = 2  # Max Depth that minimax searches to
+        self.A_BIG_NUMBER = 1000  # An arbitrarily really big number
 
     def registerInitialState(self, gameState):
         """
@@ -184,14 +187,14 @@ class OffenseAgent(minimaxCaptureAgent):
         if oldState is not None:
             oldNumFood = self.getFood(oldState).asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
-            foodScore += 1000  # Give extra points if the amount of food has gone down
+            foodScore += self.A_BIG_NUMBER  # Give extra points if the amount of food has gone down
         if len(numFood) > 0:  # if food is still on the map
             foodScore += 300 / len(numFood)  # less food = better score
             farthestFood = self.getFarthestFood(gameState, position)
             closestFood = self.getNearestFood(gameState, position)
             foodScore -= 1.7 * farthestFood + 3 * closestFood
         else:  # if no food then that means game finished so make that big value
-            foodScore += 1000
+            foodScore += self.A_BIG_NUMBER
 
         # closestCapsule = self.getNearestCapsule(gameState, position)
 
@@ -305,19 +308,19 @@ class DefenseAgent(minimaxCaptureAgent):
         score = 0
         if self.isEnemyInBase(currentGameState):
             if agentState.isPacman():
-                score = -1000
+                score = -self.A_BIG_NUMBER
             return score + self.getEnemyScore(position, currentGameState)
         else:
             score += 10
         if agentState.isPacman():
-            score = -1000
+            score = -self.A_BIG_NUMBER
             score += self.getEnemyScore(position, currentGameState)
         if agentState.isGhost():
             score += 1
             score += self.getEnemyScore(position, currentGameState)
         if self.respawned(currentGameState):
         #    print("RESPAWNED")
-            score = -1000
+            score = -self.A_BIG_NUMBER
         # print(f"is pacman: {agentState.isPacman()}")
         # print(
         #     f"current score {score}, eScore: {self.getEnemyScore(position, currentGameState)}, foodDef: {self.getFoodDefendingScore(currentGameState)}"
