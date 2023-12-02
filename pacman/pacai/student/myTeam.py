@@ -57,13 +57,13 @@ class minimaxCaptureAgent(CaptureAgent):
         val, action = self.alphaBeta(gameState, self.index, 0)
         return action
 
-    def alphaBeta(self, gameState, index, depth):
+    def alphaBeta(self, gameState, index, depth, increaseDepth = False):
         if depth == self.MAX_DEPTH or gameState.isOver():
             return self.evaluationFunction(gameState), None
         if index in self.getTeam(gameState):
             return self.maxVal(gameState, index, depth)
         else:
-            return self.minVal(gameState, index, depth)
+            return self.minVal(gameState, index, depth, increaseDepth)
 
     def maxVal(self, gameState, index, depth):
         best_value = float("-inf")
@@ -75,7 +75,7 @@ class minimaxCaptureAgent(CaptureAgent):
             successor = gameState.generateSuccessor(index, action)
             max_agents = gameState.getNumAgents()
             if index == max_agents - 1:
-                value, _ = self.alphaBeta(successor, 0, depth + 1)
+                value, _ = self.alphaBeta(successor, 0, depth, True)
             else:
                 value, _ = self.alphaBeta(successor, index + 1, depth)
             if value > best_value:
@@ -86,7 +86,7 @@ class minimaxCaptureAgent(CaptureAgent):
                     break
         return (best_value, best_action)
 
-    def minVal(self, gameState, index, depth):
+    def minVal(self, gameState, index, depth, increaseDepth):
         max_agents = gameState.getNumAgents()
         best_value = float("inf")
         best_action = None
@@ -95,7 +95,7 @@ class minimaxCaptureAgent(CaptureAgent):
             if action == Directions.STOP:
                 continue
             successor = gameState.generateSuccessor(index, action)
-            if index == max_agents - 1:
+            if (self.red and index == max_agents - 1) or increaseDepth:
                 value, _ = self.alphaBeta(successor, 0, depth + 1)
             else:
                 value, _ = self.alphaBeta(successor, index + 1, depth)
