@@ -53,6 +53,8 @@ class minimaxCaptureAgent(CaptureAgent):
 
     def chooseAction(self, gameState):
         val, action = self.alphaBeta(gameState, self.index, 0)
+        self.alpha = float("-inf")
+        self.beta = float("inf")
         return action
 
     def alphaBeta(self, gameState, index, depth):
@@ -178,12 +180,15 @@ class OffenseAgent(minimaxCaptureAgent):
         if oldState is not None:
             oldNumFood = self.getFood(oldState).asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
-            foodScore += 30  # Give extra points if the amount of food has gone down
+            foodScore += 300  # Give extra points if the amount of food has gone down
         if len(numFood) > 0:  # if food is still on the map
-            foodScore += 300 / len(numFood)  # less food = better score
-            farthestFood = self.getFarthestFood(gameState, position)
+            foodScore += 1000 / len(numFood)  # less food = better score
+            # farthestFood = self.getFarthestFood(gameState, position)
+            farthestFood = 0
             closestFood = self.getNearestFood(gameState, position)
-            foodScore -= 1.7 * farthestFood + 3 * closestFood
+            print("food/closest", foodScore, closestFood)
+            foodScore += 1.7 * farthestFood + 100/closestFood
+            print("foodscore2", foodScore)
         else:  # if no food then that means game finished so make that big value
             foodScore += 1000
 
@@ -260,7 +265,7 @@ class OffenseAgent(minimaxCaptureAgent):
         foodScore = self.getFoodScore(currentGameState, position)
         ghostScore = self.getGhostScore(currentGameState, position)
         capScore = self.getCapsuleScore(currentGameState, position)
-        #print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
+        # print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
         currentGameState.addScore(
            1.3 * foodScore + .5 * capScore + 1.2*ghostScore
         )  # add all scores together
@@ -284,38 +289,15 @@ class DefenseAgent(minimaxCaptureAgent):
         super().registerInitialState(gameState)
 
     def evaluationFunction(self, currentGameState): 
-        """
-        position = currentGameState.getAgentPosition(self.index)
-        enemies = [currentGameState.getAgentState(i) for i in self.getOpponents(currentGameState)]
-        dists = [self.getMazeDistance(position, enemy.getPosition()) for enemy in enemies]
-        minDist = min(dists)
-        invaders = [e for e in enemies if e.isPacman() and e.getPosition() is not None]
-        if (len(invaders) > 0):
-            dists = [self.getMazeDistance(position, enemy.getPosition()) for enemy in invaders]
-            minDist = min(dists)
-            invaderScore = 100 / minDist
-        else:
-            if currentGameState.isOnRedTeam(self.index):
-                if currentGameState.isOnBlueSide(position):
-                    invaderScore = -200
-                else:
-                    minDist = min(dists)
-                    invaderScore = 100 / minDist
-            else:
-                if currentGameState.isOnRedSide(position):
-                    invaderScore = -200
-                else:
-                    minDist = min(dists)
-                    invaderScore = 100 / minDist
-        print("pos:", position, "invadorScore:", invaderScore, "minDist:", minDist)
-        currentGameState.addScore(invaderScore)
-        return currentGameState.getScore()
-        """
         position = currentGameState.getAgentPosition(self.index)
         enemyScore = self.getEnemyScore(currentGameState, position)
         posScore = self.getPosScore(currentGameState, position)
+        # enemyScore = 0
+        # posScore = 0
         foodScore = self.getFoodScore(currentGameState, position)
-        foo = 1.3 * enemyScore + .2 * posScore + 2 * foodScore
+        # invaderScore = self.getInvaderScore(currentGameState, position)
+        invaderScore = 0
+        foo = 1.3 * enemyScore + .2 * posScore + 2 * foodScore + 1.5 * invaderScore
         return foo
 
     def getFoodScore(self, gameState, position):
@@ -328,20 +310,28 @@ class DefenseAgent(minimaxCaptureAgent):
     def getPosScore(self, gameState, position):
         score = 0
         layout = gameState.getInitialLayout()
-        x = layout.getWidth() / 2
+        x = layout.width / 2
         y = layout.height / 2
+        # print(layout.width, layout.height)
+        distToMid = self.getMazeDistance((x, y), position)
+        #print("dist to middle:", distToMid)
+        score += 30/(distToMid + 1)
         if self.red:
             if gameState.isOnBlueSide(position):
+                #print("wrong side")
                 score -= 1000
             else:
-                score += x/position[0] if position[0] != 1 else 0 
-                score += y/position[1] if position[1] != 1 else 0
+                print("positions:", position, x, x/position[0], y, y/position[1])
+                # score += distToMid if position[0] != 1 else 0 
+                # score += y/position[1] if position[1] != 1 else 0
         else:
             if gameState.isOnRedSide(position):
                 score -= 1000
             else:
-                score += x/position[0] if position[0] != 1 else 0 
-                score += y/position[1] if position[1] != 1 else 0
+                print("positions:", position, x, x/position[0], y, y/position[1])
+                # score += distToMid if position[0] != 1 else 0 
+                # score += y/position[1] if position[1] != 1 else 0
+        print("score:", score)
         return score
 
     def getEnemyScore(self, gameState, position):
@@ -363,4 +353,29 @@ class DefenseAgent(minimaxCaptureAgent):
             score += 100/dist
         if skipCount == 2:
             score += 100  # all enemies are on their own side. Life is good.
+        return score
+
+    def getInvaderScore(self, gameState, position):
+        enemies = [gameState.getAgentState(i) for i in self.getOpponents(gameState)]
+        dists = [self.getMazeDistance(position, enemy.getPosition()) for enemy in enemies]
+        minDist = min(dists)
+        invaders = [e for e in enemies if e.isPacman() and e.getPosition() is not None]
+        if (len(invaders) > 0):
+            dists = [self.getMazeDistance(position, enemy.getPosition()) for enemy in invaders]
+            minDist = min(dists)
+            score = 100 / minDist
+        else:
+            if gameState.isOnRedTeam(self.index):
+                if gameState.isOnBlueSide(position):
+                    score = -200
+                else:
+                    minDist = min(dists)
+                    score = 100 / minDist
+            else:
+                if gameState.isOnRedSide(position):
+                    score = -200
+                else:
+                    minDist = min(dists)
+                    score = 100 / minDist
+        # print("pos:", position, "invadorScore:", score, "minDist:", minDist)
         return score
