@@ -317,10 +317,7 @@ class DefenseAgent(minimaxCaptureAgent):
 
     def isEnemyInBase(self, gameState):
         """Finds nearest ghost and adds a score based on distance from ghost"""
-        enemyAgents = [
-            gameState.getAgentState(enemyIdx)
-            for enemyIdx in self.getOpponents(gameState)
-        ]
+        enemyAgents = self.getEnemyAgentStates(gameState)
         invaders = [
             a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
         ]
@@ -339,22 +336,12 @@ class DefenseAgent(minimaxCaptureAgent):
             a for a in enemyAgents if a.isGhost() and a.getPosition() is not None
         ]
         score = 0
-        closestEnemyInBase = float("inf")
-        closestEnemy = float("inf")
         if len(invaders) > 0:
-            for invader in invaders:
-                closestEnemyInBase = min(
-                    closestEnemyInBase,
-                    self.getMazeDistance(position, invader.getPosition()),
-                )
+            closestEnemyInBase = self.getClosestEnemy(position, invaders)
             score += 10 / (closestEnemyInBase + 1)
         else:
             if agentState.isGhost():
-                for defender in defenders:
-                    closestEnemy = min(
-                        closestEnemy,
-                        self.getMazeDistance(position, defender.getPosition()),
-                    )
+                closestEnemy = self.getClosestEnemy(position, defenders)
                 score += 10 / (closestEnemy + 1)
             else:
                 for defender in defenders:
@@ -367,6 +354,22 @@ class DefenseAgent(minimaxCaptureAgent):
     #     if self.red != gameState.isOnRedSide(defenseState.getPosition()):
     #         return True
     #     return False
+    
+    def getClosestEnemy(self, position, ls):
+        '''
+        ls: List of enemy Agent States
+        position: current Position
+        returns int: Distance to the closest enemy
+        
+        Finds the distance to the closest enemy agent in ls
+        '''
+        closest = float('inf')
+        for item in ls:
+            closest = min(
+                    closest,
+                    self.getMazeDistance(position, item.getPosition())
+            )
+        return closest
 
     def getFoodDefendingScore(self, gameState):
         return len(self.getFoodYouAreDefending(gameState).asList())
