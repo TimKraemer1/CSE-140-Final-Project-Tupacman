@@ -285,13 +285,36 @@ class DefenseAgent(minimaxCaptureAgent):
         super().registerInitialState(gameState)
 
     def evaluationFunction(self, currentGameState):
+        """
+        Scoring is based on if it's in ghost or pacman form
+        In ghost form, tries to chase invaders in base
+        In pacman form, runs away from enemies
+        If there are no invaders, it camps the an area closest
+        to the nearest enemy agents
+        """
         position = currentGameState.getAgentPosition(self.index)
-        enemyScore = self.getEnemyScore(currentGameState, position)
-        posScore = self.getPosScore(currentGameState, position)
-        foodScore = self.getFoodScore(currentGameState, position)
-        foo = 1.3 * enemyScore + .2 * posScore + 2 * foodScore
-        return foo
-
+        agentState = currentGameState.getAgentState(self.index)
+        score = 0
+        if self.isEnemyInBase(currentGameState):
+            if agentState.isPacman():
+                score = -1000
+            return score + self.getEnemyScore(currentGameState, position)
+        else:
+            score += 10
+        if agentState.isPacman():
+            score = -1000
+            score += self.getEnemyScore(currentGameState, position)
+        if agentState.isGhost():
+            score += 1
+            score += self.getEnemyScore(currentGameState, position)
+        if self.respawned(currentGameState):
+            print("RESPAWNED")
+            score = -1000
+        # print(f"is pacman: {agentState.isPacman()}")
+        # print(
+        #     f"current score {score}, eScore: {self.getEnemyScore(position, currentGameState)}, foodDef: {self.getFoodDefendingScore(currentGameState)}"
+        # )
+        return score
     def getFoodScore(self, gameState, position):
         food = self.getFoodYouAreDefending(gameState).asList()
         score = 0
@@ -318,22 +341,54 @@ class DefenseAgent(minimaxCaptureAgent):
         return score
 
     def getEnemyScore(self, gameState, position):
+        """Finds nearest ghost and adds a score based on distance from ghost"""
+        agentState = gameState.getAgentState(self.index)
+        enemyAgents = self.getEnemyAgentStates(gameState)
+        invaders = [
+            a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
+        ]
+        defenders = [
+            a for a in enemyAgents if a.isGhost() and a.getPosition() is not None
+        ]
         score = 0
-        enemyState = self.getEnemyAgentStates(gameState)
-        skipCount = 0
-        for enemy in enemyState:
-            if not enemy.isPacman():
-                skipCount += 1
-                continue  # Ignore ghosts for now
-            enemyPos = enemy.getPosition()
-            dist = self.getMazeDistance(enemyPos, position)
-            if self.red:
-                if gameState.isOnBlueSide(enemyPos):
-                    score -= 25
+        closestEnemyInBase = float("inf")
+        closestEnemy = float("inf")
+        if len(invaders) > 0:
+            for invader in invaders:
+                closestEnemyInBase = min(
+                    closestEnemyInBase,
+                    self.getMazeDistance(position, invader.getPosition()),
+                )
+            score += 10 / (closestEnemyInBase + 1)
+        else:
+            if agentState.isGhost():
+                for defender in defenders:
+                    closestEnemy = min(
+                        closestEnemy,
+                        self.getMazeDistance(position, defender.getPosition()),
+                    )
+                score += 10 / (closestEnemy + 1)
             else:
-                if gameState.isOnRedSide(enemyPos):
-                    score -= 25
-            score += 100/dist
-        if skipCount == 2:
-            score += 100  # all enemies are on their own side. Life is good.
+                for defender in defenders:
+                    score -= self.getMazeDistance(position, defender.getPosition())
         return score
+
+    def isEnemyInBase(self, gameState):
+        """Finds nearest ghost and adds a score based on distance from ghost"""
+        enemyAgents = [
+            gameState.getAgentState(enemyIdx)
+            for enemyIdx in self.getOpponents(gameState)
+        ]
+        invaders = [
+            a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
+        ]
+        if len(invaders) > 0:
+            return True
+        return False
+
+    def getFoodDefendingScore(self, gameState):
+        return len(self.getFoodYouAreDefending(gameState).asList())
+
+    def respawned(self, gameState):
+        defenseState = gameState.getAgentState(self.index)
+        return defenseState.getPosition() == defenseState._startPosition
