@@ -39,6 +39,7 @@ class minimaxCaptureAgent(CaptureAgent):
         super().__init__(index, **kwargs)
         self.alpha = float("-inf")
         self.beta = float("inf")
+        self.max_depth = 2
 
     def registerInitialState(self, gameState):
         """
@@ -57,7 +58,7 @@ class minimaxCaptureAgent(CaptureAgent):
         return action
 
     def alphaBeta(self, gameState, index, depth):
-        if depth == self.MAX_DEPTH or gameState.isOver():
+        if depth == self.max_depth or gameState.isOver():
             return self.evaluationFunction(gameState), None
         if index in self.getTeam(gameState):
             return self.maxVal(gameState, index, depth)
@@ -103,7 +104,7 @@ class minimaxCaptureAgent(CaptureAgent):
         return (min_value, worst_action)
 
     def evaluationFunction(self, currentGameState):
-        return currentGameState.getScore()
+        pass
 
 
 class OffenseAgent(minimaxCaptureAgent):
@@ -268,6 +269,7 @@ class DefenseAgent(minimaxCaptureAgent):
 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
+        self.max_depth = 1
 
     def registerInitialState(self, gameState):
         """
@@ -283,22 +285,24 @@ class DefenseAgent(minimaxCaptureAgent):
         position = currentGameState.getAgentPosition(self.index)
         agentState = currentGameState.getAgentState(self.index)
         numFood = self.getFood(currentGameState).asList()
-        # ghostStates = currentGameState.getGhostStates()
         capsules = self.getCapsules(currentGameState)
         isScared = agentState.isScared
         score = 0
         if self.isEnemyInBase(currentGameState):
-            return self.getEnemyScore(position, currentGameState)
+            if agentState.isPacman():
+                score = -1000
+            return score + self.getEnemyScore(position, currentGameState)
         else:
             score += 10
         if agentState.isPacman():
-            score = -float("inf")
+            score = -1000
+            score += self.getEnemyScore(position, currentGameState)
         if agentState.isGhost():
-            score += 10
+            score += 1
             score += self.getEnemyScore(position, currentGameState)
         if self.respawned(currentGameState):
             print("RESPAWNED")
-            score = -float("inf")
+            score = -1000
         # if self.onOtherSide(currentGameState):
         #     return -float("inf")
         print(f"is pacman: {agentState.isPacman()}")
@@ -357,14 +361,10 @@ class DefenseAgent(minimaxCaptureAgent):
                         closestEnemy,
                         self.getMazeDistance(position, defender.getPosition()),
                     )
-                score += 1 / (closestEnemy + 1)
+                score += 10 / (closestEnemy + 1)
             else:
                 for defender in defenders:
-                    closestEnemy = min(
-                        closestEnemy,
-                        self.getMazeDistance(position, defender.getPosition()),
-                    )
-                score += closestEnemy
+                    score -= self.getMazeDistance(position, defender.getPosition())
         return score
 
     def onOtherSide(self, gameState):
