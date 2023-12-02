@@ -2,6 +2,7 @@
 import pdb
 from pacai.agents.capture.capture import CaptureAgent
 from pacai.agents.capture.defense import DefensiveReflexAgent
+from pacai.agents.capture.reflex import ReflexCaptureAgent
 
 # import random
 from pacai.core import distance
@@ -32,11 +33,13 @@ def createTeam(
 
 
 class minimaxCaptureAgent(CaptureAgent):
-    MAX_DEPTH = 2 
+    MAX_DEPTH = 3
+
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
         self.alpha = float("-inf")
         self.beta = float("inf")
+        self.max_depth = 2
 
     def registerInitialState(self, gameState):
         """
@@ -51,12 +54,27 @@ class minimaxCaptureAgent(CaptureAgent):
         # Your initialization code goes here, if you need any.
 
     def chooseAction(self, gameState):
-        val, action = self.alphaBeta(gameState, self.index, 0)
+        next_move = None
+        best_a_utility = float("-inf")
+        legal_actions = gameState.getLegalActions(self.index)
+        for a in legal_actions:
+            # check utility for best next move
+            new_state = gameState.generateSuccessor(self.index, a)
+            self.alpha = float("-inf")
+            self.beta = float("inf")
+            utility = self.alphaBeta(new_state, 0, self.max_depth)
+            if utility >= best_a_utility:
+                next_move = a
+                best_a_utility = utility
+        return next_move
+
+        # print("val", val, "going", action)
         return action
 
     def alphaBeta(self, gameState, index, depth):
-        if depth == self.MAX_DEPTH or gameState.isOver():
-            return self.evaluationFunction(gameState), None
+        if depth == self.max_depth or gameState.isOver():
+            return self.evaluationFunction(gameState)
+        # print("TEAMMMMMM", self.getTeam(gameState))
         if index in self.getTeam(gameState):
             return self.maxVal(gameState, index, depth)
         else:
@@ -72,77 +90,41 @@ class minimaxCaptureAgent(CaptureAgent):
             successor = gameState.generateSuccessor(index, action)
             max_agents = gameState.getNumAgents()
             if index == max_agents - 1:
-                value, _ = self.alphaBeta(successor, 0, depth + 1)
+                value = self.alphaBeta(successor, 0, depth + 1)
             else:
-                value, _ = self.alphaBeta(successor, index + 1, depth)
+                value = self.alphaBeta(successor, index + 1, depth)
             if value > best_value:
                 best_value = value
                 best_action = action
-                self.alpha = max(self.alpha, best_value)
-                if value <= self.beta:
+                if value >= self.beta:
                     break
-        return (best_value, best_action)
+                self.alpha = max(self.alpha, best_value)
+        return best_value
 
     def minVal(self, gameState, index, depth):
         max_agents = gameState.getNumAgents()
-        best_value = float("inf")
-        best_action = None
+        worst_value = float("inf")
+        worst_action = None
         actions = gameState.getLegalActions(index)
         for action in actions:
             if action == Directions.STOP:
                 continue
             successor = gameState.generateSuccessor(index, action)
             if index == max_agents - 1:
-                value, _ = self.alphaBeta(successor, 0, depth + 1)
+                value = self.alphaBeta(successor, 0, depth + 1)
             else:
-                value, _ = self.alphaBeta(successor, index + 1, depth)
-            if value < best_value:
-                best_value = value
-                best_action = action
-                self.beta = min(value, self.beta)
+                value = self.alphaBeta(successor, index + 1, depth)
+            if value < worst_value:
+                worst_value = value
+                worst_action = action
                 if value <= self.alpha:
                     break
-        return (best_value, best_action)
+                self.beta = min(worst_value, self.beta)
+        return worst_value
 
     def evaluationFunction(self, currentGameState):
         return currentGameState.getScore()
 
-    def getNearestFood(self, gameState, agentPos):
-        """
-        returns the maze distance (int) to the food closest to agentPos
-        """
-        closestFood = float("inf")
-        for food in self.getFood(gameState).asList():
-            distance = self.getMazeDistance(agentPos, food)
-            if distance < closestFood:
-                closestFood = distance
-        return closestFood
-
-    def getFarthestFood(self, gameState, agentPos):
-        farthestFood = float("-inf")
-        for food in self.getFood(gameState).asList():
-            distance = self.getMazeDistance(agentPos, food)
-            if distance > farthestFood:
-                farthestFood = distance
-        return farthestFood
-
-    def getNearestCapsule(self, gameState, agentPos):
-        closestCapsule = float("inf")
-        for capsule in self.getCapsules(gameState):
-            distance = self.getMazeDistance(agentPos, capsule)
-            if distance < closestCapsule:
-                closestCapsule = distance
-        return closestCapsule
-
-    def getEnemyAgentStates(self, gameState):
-        """
-        Returns a list of enemy agents' states
-        """
-        enemies = self.getOpponents(gameState)
-        states = []
-        for agent in enemies:
-            states.append(gameState.getAgentState(agent))
-        return states
 
 class OffenseAgent(minimaxCaptureAgent):
     """
@@ -177,7 +159,7 @@ class OffenseAgent(minimaxCaptureAgent):
         if oldState is not None:
             oldNumFood = self.getFood(oldState).asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
-            foodScore += 1000  # Give extra points if the amount of food has gone down
+            foodScore += 30  # Give extra points if the amount of food has gone down
         if len(numFood) > 0:  # if food is still on the map
             foodScore += 300 / len(numFood)  # less food = better score
             farthestFood = self.getFarthestFood(gameState, position)
@@ -218,12 +200,18 @@ class OffenseAgent(minimaxCaptureAgent):
             ghostPos = gState.getPosition()
             gDistance = self.getMazeDistance(position, ghostPos)
             gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
-            if gScare < gDistance:  # The ghost is scared for less turns than it takes to get to
+            if (
+                gScare < gDistance
+            ):  # The ghost is scared for less turns than it takes to get to
                 ghostScore -= 30 / gDistance
             else:
-                ghostScore += 10/gDistance
+                ghostScore += 10 / gDistance
             if gDistance < 5 and gScare <= gDistance:
-                if (gameState.isOnRedSide(ghostPos) and gameState.isOnBlueSide(position)) or (gameState.isOnBlueSide(ghostPos) and gameState.isOnRedSide(position)):
+                if (
+                    gameState.isOnRedSide(ghostPos) and gameState.isOnBlueSide(position)
+                ) or (
+                    gameState.isOnBlueSide(ghostPos) and gameState.isOnRedSide(position)
+                ):
                     ghostScore -= 50  # Should hopefully fix it from staying in the same spot looking at an enemy ghost
                 else:
                     ghostScore -= 30
@@ -259,11 +247,48 @@ class OffenseAgent(minimaxCaptureAgent):
         foodScore = self.getFoodScore(currentGameState, position)
         ghostScore = self.getGhostScore(currentGameState, position)
         capScore = self.getCapsuleScore(currentGameState, position)
-        #print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
+        # print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
         currentGameState.addScore(
-           1.3 * foodScore + .5 * capScore + 1.2*ghostScore
+            1.3 * foodScore + 0.5 * capScore + 1.2 * ghostScore
         )  # add all scores together
         return currentGameState.getScore()
+
+    def getNearestFood(self, gameState, agentPos):
+        """
+        returns the maze distance (int) to the food closest to agentPos
+        """
+        closestFood = float("inf")
+        for food in self.getFood(gameState).asList():
+            distance = self.getMazeDistance(agentPos, food)
+            if distance < closestFood:
+                closestFood = distance
+        return closestFood
+
+    def getFarthestFood(self, gameState, agentPos):
+        farthestFood = float("-inf")
+        for food in self.getFood(gameState).asList():
+            distance = self.getMazeDistance(agentPos, food)
+            if distance > farthestFood:
+                farthestFood = distance
+        return farthestFood
+
+    def getNearestCapsule(self, gameState, agentPos):
+        closestCapsule = float("inf")
+        for capsule in self.getCapsules(gameState):
+            distance = self.getMazeDistance(agentPos, capsule)
+            if distance < closestCapsule:
+                closestCapsule = distance
+        return closestCapsule
+
+    def getEnemyAgentStates(self, gameState):
+        """
+        Returns a list of enemy agents' states
+        """
+        enemies = self.getOpponents(gameState)
+        states = []
+        for agent in enemies:
+            states.append(gameState.getAgentState(agent))
+        return states
 
 
 class DefenseAgent(minimaxCaptureAgent):
@@ -271,17 +296,7 @@ class DefenseAgent(minimaxCaptureAgent):
 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
-        self.MAX_DEPTH = 1
-
-    def registerInitialState(self, gameState):
-        """
-        This method handles the initial setup of the agent and populates useful fields,
-        such as the team the agent is on and the `pacai.core.distanceCalculator.Distancer`.
-
-        IMPORTANT: If this method runs for more than 15 seconds, your agent will time out.
-        """
-
-        super().registerInitialState(gameState)
+        self.max_depth = 1
 
     def evaluationFunction(self, currentGameState):
         """
@@ -306,10 +321,12 @@ class DefenseAgent(minimaxCaptureAgent):
         if agentState.isGhost():
             score += 1
             score += self.getEnemyScore(position, currentGameState)
+            # print("Test!!!!")
         if self.respawned(currentGameState):
-            print("RESPAWNED")
-            score = -1000
-        # print(f"is pacman: {agentState.isPacman()}")
+            # print("RESPAWNED")
+            score -= 1000
+            # score += self.getEnemyScore(position, currentGameState)
+        # # print(f"is pacman: {agentState.isPacman()}")
         # print(
         #     f"current score {score}, eScore: {self.getEnemyScore(position, currentGameState)}, foodDef: {self.getFoodDefendingScore(currentGameState)}"
         # )
@@ -331,7 +348,10 @@ class DefenseAgent(minimaxCaptureAgent):
     def getEnemyScore(self, position, gameState):
         """Finds nearest ghost and adds a score based on distance from ghost"""
         agentState = gameState.getAgentState(self.index)
-        enemyAgents = self.getEnemyAgentStates(gameState)
+        enemyAgents = [
+            gameState.getAgentState(enemyIdx)
+            for enemyIdx in self.getOpponents(gameState)
+        ]
         invaders = [
             a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
         ]
