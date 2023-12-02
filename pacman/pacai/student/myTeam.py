@@ -331,10 +331,7 @@ class DefenseAgent(minimaxCaptureAgent):
     def getEnemyScore(self, position, gameState):
         """Finds nearest ghost and adds a score based on distance from ghost"""
         agentState = gameState.getAgentState(self.index)
-        enemyAgents = [
-            gameState.getAgentState(enemyIdx)
-            for enemyIdx in self.getOpponents(gameState)
-        ]
+        enemyAgents = self.getEnemyAgentStates(gameState)
         invaders = [
             a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
         ]
