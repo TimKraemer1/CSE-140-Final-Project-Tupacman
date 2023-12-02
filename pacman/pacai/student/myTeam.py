@@ -32,8 +32,7 @@ def createTeam(
 
 
 class minimaxCaptureAgent(CaptureAgent):
-    MAX_DEPTH = 3
-
+    MAX_DEPTH = 3 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
         self.alpha = float("-inf")
@@ -178,7 +177,7 @@ class OffenseAgent(minimaxCaptureAgent):
         if oldState is not None:
             oldNumFood = self.getFood(oldState).asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
-            foodScore += 30  # Give extra points if the amount of food has gone down
+            foodScore += 1000  # Give extra points if the amount of food has gone down
         if len(numFood) > 0:  # if food is still on the map
             foodScore += 300 / len(numFood)  # less food = better score
             farthestFood = self.getFarthestFood(gameState, position)
@@ -267,12 +266,12 @@ class OffenseAgent(minimaxCaptureAgent):
         return currentGameState.getScore()
 
 
-
 class DefenseAgent(minimaxCaptureAgent):
     """Defends team side from enemy pacmans"""
 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
+        self.max_depth = 3
 
     def registerInitialState(self, gameState):
         """
@@ -298,15 +297,15 @@ class DefenseAgent(minimaxCaptureAgent):
         if self.isEnemyInBase(currentGameState):
             if agentState.isPacman():
                 score = -1000
-            return score + self.getEnemyScore(currentGameState, position)
+            return score + self.getEnemyScore(position, currentGameState)
         else:
             score += 10
         if agentState.isPacman():
             score = -1000
-            score += self.getEnemyScore(currentGameState, position)
+            score += self.getEnemyScore(position, currentGameState)
         if agentState.isGhost():
             score += 1
-            score += self.getEnemyScore(currentGameState, position)
+            score += self.getEnemyScore(position, currentGameState)
         if self.respawned(currentGameState):
             print("RESPAWNED")
             score = -1000
@@ -315,35 +314,27 @@ class DefenseAgent(minimaxCaptureAgent):
         #     f"current score {score}, eScore: {self.getEnemyScore(position, currentGameState)}, foodDef: {self.getFoodDefendingScore(currentGameState)}"
         # )
         return score
-    def getFoodScore(self, gameState, position):
-        food = self.getFoodYouAreDefending(gameState).asList()
-        score = 0
-        score += len(food)
-        return score
 
-    def getPosScore(self, gameState, position):
-        score = 0
-        layout = gameState.getInitialLayout()
-        x = layout.getWidth() / 2
-        y = layout.height / 2
-        if self.red:
-            if gameState.isOnBlueSide(position):
-                score -= 1000
-            else:
-                score += x/position[0] if position[0] != 1 else 0 
-                score += y/position[1] if position[1] != 1 else 0
-        else:
-            if gameState.isOnRedSide(position):
-                score -= 1000
-            else:
-                score += x/position[0] if position[0] != 1 else 0 
-                score += y/position[1] if position[1] != 1 else 0
-        return score
+    def isEnemyInBase(self, gameState):
+        """Finds nearest ghost and adds a score based on distance from ghost"""
+        enemyAgents = [
+            gameState.getAgentState(enemyIdx)
+            for enemyIdx in self.getOpponents(gameState)
+        ]
+        invaders = [
+            a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
+        ]
+        if len(invaders) > 0:
+            return True
+        return False
 
-    def getEnemyScore(self, gameState, position):
+    def getEnemyScore(self, position, gameState):
         """Finds nearest ghost and adds a score based on distance from ghost"""
         agentState = gameState.getAgentState(self.index)
-        enemyAgents = self.getEnemyAgentStates(gameState)
+        enemyAgents = [
+            gameState.getAgentState(enemyIdx)
+            for enemyIdx in self.getOpponents(gameState)
+        ]
         invaders = [
             a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
         ]
@@ -373,18 +364,12 @@ class DefenseAgent(minimaxCaptureAgent):
                     score -= self.getMazeDistance(position, defender.getPosition())
         return score
 
-    def isEnemyInBase(self, gameState):
-        """Finds nearest ghost and adds a score based on distance from ghost"""
-        enemyAgents = [
-            gameState.getAgentState(enemyIdx)
-            for enemyIdx in self.getOpponents(gameState)
-        ]
-        invaders = [
-            a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
-        ]
-        if len(invaders) > 0:
-            return True
-        return False
+    # def onOtherSide(self, gameState):
+    #     """Lowers score to never choose to cross the middle"""
+    #     defenseState = gameState.getAgentState(self.index)
+    #     if self.red != gameState.isOnRedSide(defenseState.getPosition()):
+    #         return True
+    #     return False
 
     def getFoodDefendingScore(self, gameState):
         return len(self.getFoodYouAreDefending(gameState).asList())
