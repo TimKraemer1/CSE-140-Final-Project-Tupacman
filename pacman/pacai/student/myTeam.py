@@ -32,7 +32,7 @@ def createTeam(
 
 
 class minimaxCaptureAgent(CaptureAgent):
-    MAX_DEPTH = 3 
+    MAX_DEPTH = 2 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
         self.alpha = float("-inf")
@@ -271,7 +271,7 @@ class DefenseAgent(minimaxCaptureAgent):
 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
-        self.max_depth = 3
+        self.MAX_DEPTH = 1
 
     def registerInitialState(self, gameState):
         """
