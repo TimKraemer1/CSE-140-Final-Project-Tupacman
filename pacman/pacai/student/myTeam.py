@@ -33,7 +33,6 @@ def createTeam(
 
 
 class minimaxCaptureAgent(CaptureAgent):
-  
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
         self.alpha = float("-inf")
@@ -134,19 +133,53 @@ class minimaxCaptureAgent(CaptureAgent):
     def evaluationFunction(self, currentGameState):
         return currentGameState.getScore()
 
+    def getNearestFood(self, gameState, agentPos):
+        """
+        returns the maze distance (int) to the food closest to agentPos
+        """
+        closestFood = float("inf")
+        for food in self.getFood(gameState).asList():
+            distance = self.getMazeDistance(agentPos, food)
+            if distance < closestFood:
+                closestFood = distance
+        return closestFood
+
+    def getFarthestFood(self, gameState, agentPos):
+        farthestFood = float("-inf")
+        for food in self.getFood(gameState).asList():
+            distance = self.getMazeDistance(agentPos, food)
+            if distance > farthestFood:
+                farthestFood = distance
+        return farthestFood
+
+    def getNearestCapsule(self, gameState, agentPos):
+        closestCapsule = float("inf")
+        for capsule in self.getCapsules(gameState):
+            distance = self.getMazeDistance(agentPos, capsule)
+            if distance < closestCapsule:
+                closestCapsule = distance
+        return closestCapsule
+
+    def getEnemyAgentStates(self, gameState):
+        """
+        Returns a list of enemy agents' states
+        """
+        enemies = self.getOpponents(gameState)
+        states = []
+        for agent in enemies:
+            states.append(gameState.getAgentState(agent))
+        return states
+
 
 class OffenseAgent(minimaxCaptureAgent):
     """
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
     """
+
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
-        self.weights = {
-                'foodWeight' : 1.7, 
-                'ghostWeight' : 1.2, 
-                'capsuleWeight' : .5
-                }
+        self.weights = {"foodWeight": 1.7, "ghostWeight": 1.2, "capsuleWeight": 0.5}
 
     def getFoodScore(self, gameState, position):
         """
@@ -175,7 +208,9 @@ class OffenseAgent(minimaxCaptureAgent):
         if oldState is not None:
             oldNumFood = self.getFood(oldState).asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
-            foodScore += self.A_BIG_NUMBER  # Give extra points if the amount of food has gone down
+            foodScore += (
+                self.A_BIG_NUMBER
+            )  # Give extra points if the amount of food has gone down
         if len(numFood) > 0:  # if food is still on the map
             foodScore += 300 / len(numFood)  # less food = better score
             farthestFood = self.getFarthestFood(gameState, position)
@@ -266,49 +301,12 @@ class OffenseAgent(minimaxCaptureAgent):
         # print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
         print("Score: ", currentGameState.getScore())
         currentGameState.addScore(
-           self.weights['foodWeight'] * foodScore +
-           self.weights['capsuleWeight'] * capScore +
-           self.weights['ghostWeight'] * ghostScore
+            self.weights["foodWeight"] * foodScore
+            + self.weights["capsuleWeight"] * capScore
+            + self.weights["ghostWeight"] * ghostScore
         )  # add all scores together
 
         return currentGameState.getScore()
-
-    def getNearestFood(self, gameState, agentPos):
-        """
-        returns the maze distance (int) to the food closest to agentPos
-        """
-        closestFood = float("inf")
-        for food in self.getFood(gameState).asList():
-            distance = self.getMazeDistance(agentPos, food)
-            if distance < closestFood:
-                closestFood = distance
-        return closestFood
-
-    def getFarthestFood(self, gameState, agentPos):
-        farthestFood = float("-inf")
-        for food in self.getFood(gameState).asList():
-            distance = self.getMazeDistance(agentPos, food)
-            if distance > farthestFood:
-                farthestFood = distance
-        return farthestFood
-
-    def getNearestCapsule(self, gameState, agentPos):
-        closestCapsule = float("inf")
-        for capsule in self.getCapsules(gameState):
-            distance = self.getMazeDistance(agentPos, capsule)
-            if distance < closestCapsule:
-                closestCapsule = distance
-        return closestCapsule
-
-    def getEnemyAgentStates(self, gameState):
-        """
-        Returns a list of enemy agents' states
-        """
-        enemies = self.getOpponents(gameState)
-        states = []
-        for agent in enemies:
-            states.append(gameState.getAgentState(agent))
-        return states
 
 
 class DefenseAgent(minimaxCaptureAgent):
@@ -343,7 +341,7 @@ class DefenseAgent(minimaxCaptureAgent):
             score += self.getEnemyScore(position, currentGameState)
             # print("Test!!!!")
         if self.respawned(currentGameState):
-        #    print("RESPAWNED")
+            #    print("RESPAWNED")
             score = -self.A_BIG_NUMBER
         # print(f"is pacman: {agentState.isPacman()}")
         # print(
@@ -393,21 +391,18 @@ class DefenseAgent(minimaxCaptureAgent):
     #     if self.red != gameState.isOnRedSide(defenseState.getPosition()):
     #         return True
     #     return False
-    
+
     def getClosestEnemy(self, position, ls):
-        '''
+        """
         ls: List of enemy Agent States
         position: current Position
         returns int: Distance to the closest enemy
-        
+
         Finds the distance to the closest enemy agent in ls
-        '''
-        closest = float('inf')
+        """
+        closest = float("inf")
         for item in ls:
-            closest = min(
-                    closest,
-                    self.getMazeDistance(position, item.getPosition())
-            )
+            closest = min(closest, self.getMazeDistance(position, item.getPosition()))
         return closest
 
     def getFoodDefendingScore(self, gameState):
