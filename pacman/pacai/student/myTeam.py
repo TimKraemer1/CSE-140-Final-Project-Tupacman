@@ -299,7 +299,7 @@ class OffenseAgent(minimaxCaptureAgent):
         ghostScore = self.getGhostScore(currentGameState, position)
         capScore = self.getCapsuleScore(currentGameState, position)
         # print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
-        print("Score: ", currentGameState.getScore())
+        # print("Score: ", currentGameState.getScore())
         currentGameState.addScore(
             self.weights["foodWeight"] * foodScore
             + self.weights["capsuleWeight"] * capScore
