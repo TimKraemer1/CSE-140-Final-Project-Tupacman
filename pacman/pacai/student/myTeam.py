@@ -33,13 +33,13 @@ def createTeam(
 
 
 class minimaxCaptureAgent(CaptureAgent):
-    MAX_DEPTH = 3
-
+  
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
         self.alpha = float("-inf")
         self.beta = float("inf")
         self.max_depth = 1
+        self.A_BIG_NUMBER = 1000  # An arbitrarily really big number
 
     def registerInitialState(self, gameState):
         """
@@ -140,6 +140,13 @@ class OffenseAgent(minimaxCaptureAgent):
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
     """
+    def __init__(self, index, **kwargs):
+        super().__init__(index, **kwargs)
+        self.weights = {
+                'foodWeight' : 1.7, 
+                'ghostWeight' : 1.2, 
+                'capsuleWeight' : .5
+                }
 
     def getFoodScore(self, gameState, position):
         """
@@ -168,14 +175,14 @@ class OffenseAgent(minimaxCaptureAgent):
         if oldState is not None:
             oldNumFood = self.getFood(oldState).asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
-            foodScore += 30  # Give extra points if the amount of food has gone down
+            foodScore += self.A_BIG_NUMBER  # Give extra points if the amount of food has gone down
         if len(numFood) > 0:  # if food is still on the map
             foodScore += 300 / len(numFood)  # less food = better score
             farthestFood = self.getFarthestFood(gameState, position)
             closestFood = self.getNearestFood(gameState, position)
             foodScore -= 1.7 * farthestFood + 3 * closestFood
         else:  # if no food then that means game finished so make that big value
-            foodScore += 1000
+            foodScore += self.A_BIG_NUMBER
 
         # closestCapsule = self.getNearestCapsule(gameState, position)
 
@@ -259,7 +266,9 @@ class OffenseAgent(minimaxCaptureAgent):
         # print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
         print("Score: ", currentGameState.getScore())
         currentGameState.addScore(
-            1.3 * foodScore + 0.5 * capScore + 1.2 * ghostScore
+           self.weights['foodWeight'] * foodScore +
+           self.weights['capsuleWeight'] * capScore +
+           self.weights['ghostWeight'] * ghostScore
         )  # add all scores together
 
         return currentGameState.getScore()
@@ -322,22 +331,21 @@ class DefenseAgent(minimaxCaptureAgent):
         score = 0
         if self.isEnemyInBase(currentGameState):
             if agentState.isPacman():
-                score = -1000
+                score = -self.A_BIG_NUMBER
             return score + self.getEnemyScore(position, currentGameState)
         else:
             score += 10
         if agentState.isPacman():
-            score = -1000
+            score = -self.A_BIG_NUMBER
             score += self.getEnemyScore(position, currentGameState)
         if agentState.isGhost():
             score += 1
             score += self.getEnemyScore(position, currentGameState)
             # print("Test!!!!")
         if self.respawned(currentGameState):
-            # print("RESPAWNED")
-            score -= 1000
-            # score += self.getEnemyScore(position, currentGameState)
-        # # print(f"is pacman: {agentState.isPacman()}")
+        #    print("RESPAWNED")
+            score = -self.A_BIG_NUMBER
+        # print(f"is pacman: {agentState.isPacman()}")
         # print(
         #     f"current score {score}, eScore: {self.getEnemyScore(position, currentGameState)}, foodDef: {self.getFoodDefendingScore(currentGameState)}"
         # )
@@ -345,10 +353,7 @@ class DefenseAgent(minimaxCaptureAgent):
 
     def isEnemyInBase(self, gameState):
         """Finds nearest ghost and adds a score based on distance from ghost"""
-        enemyAgents = [
-            gameState.getAgentState(enemyIdx)
-            for enemyIdx in self.getOpponents(gameState)
-        ]
+        enemyAgents = self.getEnemyAgentStates(gameState)
         invaders = [
             a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
         ]
@@ -370,22 +375,12 @@ class DefenseAgent(minimaxCaptureAgent):
             a for a in enemyAgents if a.isGhost() and a.getPosition() is not None
         ]
         score = 0
-        closestEnemyInBase = float("inf")
-        closestEnemy = float("inf")
         if len(invaders) > 0:
-            for invader in invaders:
-                closestEnemyInBase = min(
-                    closestEnemyInBase,
-                    self.getMazeDistance(position, invader.getPosition()),
-                )
+            closestEnemyInBase = self.getClosestEnemy(position, invaders)
             score += 10 / (closestEnemyInBase + 1)
         else:
             if agentState.isGhost():
-                for defender in defenders:
-                    closestEnemy = min(
-                        closestEnemy,
-                        self.getMazeDistance(position, defender.getPosition()),
-                    )
+                closestEnemy = self.getClosestEnemy(position, defenders)
                 score += 10 / (closestEnemy + 1)
             else:
                 for defender in defenders:
@@ -398,6 +393,22 @@ class DefenseAgent(minimaxCaptureAgent):
     #     if self.red != gameState.isOnRedSide(defenseState.getPosition()):
     #         return True
     #     return False
+    
+    def getClosestEnemy(self, position, ls):
+        '''
+        ls: List of enemy Agent States
+        position: current Position
+        returns int: Distance to the closest enemy
+        
+        Finds the distance to the closest enemy agent in ls
+        '''
+        closest = float('inf')
+        for item in ls:
+            closest = min(
+                    closest,
+                    self.getMazeDistance(position, item.getPosition())
+            )
+        return closest
 
     def getFoodDefendingScore(self, gameState):
         return len(self.getFoodYouAreDefending(gameState).asList())
