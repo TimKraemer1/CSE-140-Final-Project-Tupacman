@@ -201,6 +201,15 @@ class OffenseAgent(minimaxCaptureAgent):
         the game has finished, a large positive value is returned to represent a
         favorable outcome.
         """
+        # ghost states for ghost related food scores
+        enemyAgents = self.getEnemyAgentStates(gameState)
+        invaders = [
+            a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
+        ]
+
+        closestEnemy = self.getClosestEnemy(position, invaders)
+        closestCapsule = self.getNearestCapsule(gameState, position)
+
         foodScore = 0
         numFood = self.getFood(gameState).asList()
         oldNumFood = None
@@ -219,7 +228,7 @@ class OffenseAgent(minimaxCaptureAgent):
         else:  # if no food then that means game finished so make that big value
             foodScore += self.A_BIG_NUMBER
 
-        # closestCapsule = self.getNearestCapsule(gameState, position)
+        foodScore += (1/(2 * closestCapsule) + 1/closestEnemy)
 
         return foodScore
 
@@ -245,6 +254,7 @@ class OffenseAgent(minimaxCaptureAgent):
         """
         ghostScore = 0
         ghostStates = self.getEnemyAgentStates(gameState)
+
         for gState in ghostStates:  # for all the ghosts
             if not gState.isGhost():
                 continue  # Ignore all non-ghosts for right now
@@ -266,6 +276,7 @@ class OffenseAgent(minimaxCaptureAgent):
                     ghostScore -= 50  # Should hopefully fix it from staying in the same spot looking at an enemy ghost
                 else:
                     ghostScore -= 30
+        
         return ghostScore
 
     def getCapsuleScore(self, gameState, position):
@@ -307,6 +318,22 @@ class OffenseAgent(minimaxCaptureAgent):
         )  # add all scores together
 
         return currentGameState.getScore()
+    
+    def getClosestEnemy(self, position, ls):
+        '''
+        ls: List of enemy Agent States
+        position: current Position
+        returns int: Distance to the closest enemy
+        
+        Finds the distance to the closest enemy agent in ls
+        '''
+        closest = float('inf')
+        for item in ls:
+            closest = min(
+                    closest,
+                    self.getMazeDistance(position, item.getPosition())
+            )
+        return closest
 
 
 class DefenseAgent(minimaxCaptureAgent):
