@@ -311,13 +311,13 @@ class OffenseAgent(minimaxCaptureAgent):
         capScore = self.getCapsuleScore(currentGameState, position)
         # print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
         # print("Score: ", currentGameState.getScore())
-        currentGameState.addScore(
+        score = (
             self.weights["foodWeight"] * foodScore
             + self.weights["capsuleWeight"] * capScore
             + self.weights["ghostWeight"] * ghostScore
         )  # add all scores together
 
-        return currentGameState.getScore()
+        return score
     
     def getClosestEnemy(self, position, ls):
         '''
