@@ -1,10 +1,10 @@
 # from pacai.util import reflection
-import pdb
+# import pdb
 from pacai.agents.capture.capture import CaptureAgent
 from pacai.agents.capture.defense import DefensiveReflexAgent
 from pacai.agents.capture.reflex import ReflexCaptureAgent
 
-# import random
+import random
 from pacai.core import distance
 from pacai.core.directions import Directions
 
@@ -53,7 +53,7 @@ class minimaxCaptureAgent(CaptureAgent):
         # Your initialization code goes here, if you need any.
 
     def chooseAction(self, gameState):
-        next_move = None
+        next_move = []
         best_a_utility = float("-inf")
         legal_actions = gameState.getLegalActions(self.index)
         for a in legal_actions:
@@ -64,10 +64,14 @@ class minimaxCaptureAgent(CaptureAgent):
             self.alpha = float("-inf")
             self.beta = float("inf")
             utility = self.alphaBeta(new_state, self.index, 0, 0)
-            if utility >= best_a_utility:
-                next_move = a
+            if utility > best_a_utility:
+                next_move.clear()
+                next_move.append(a)
                 best_a_utility = utility
-        return next_move
+            elif utility == best_a_utility:
+                next_move.append(a)
+
+        return random.choice(next_move)
 
         # print("val", val, "going", action)
         return action
