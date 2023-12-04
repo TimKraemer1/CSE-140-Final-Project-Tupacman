@@ -58,6 +58,8 @@ class minimaxCaptureAgent(CaptureAgent):
         legal_actions = gameState.getLegalActions(self.index)
         for a in legal_actions:
             # check utility for best next move
+            if a == Directions.STOP:
+                continue
             new_state = gameState.generateSuccessor(self.index, a)
             self.alpha = float("-inf")
             self.beta = float("inf")
