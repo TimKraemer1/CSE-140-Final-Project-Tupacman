@@ -1,5 +1,5 @@
 # from pacai.util import reflection
-# import pdb
+import pdb
 from pacai.agents.capture.capture import CaptureAgent
 from pacai.agents.capture.defense import DefensiveReflexAgent
 from pacai.agents.capture.reflex import ReflexCaptureAgent
@@ -70,21 +70,15 @@ class minimaxCaptureAgent(CaptureAgent):
                 best_a_utility = utility
             elif utility == best_a_utility:
                 next_move.append(a)
-
         return random.choice(next_move)
 
-        # print("val", val, "going", action)
         return action
 
     def alphaBeta(self, gameState, index, depth, num_agents_iter):
         if depth == self.max_depth or gameState.isOver():
             return self.evaluationFunction(gameState)
-        # print("TEAMMMMMM", self.getTeam(gameState))
-        # print("num:", gameState.getNumAgents())
         max_agents = gameState.getNumAgents()
-        # print("index:", index)
         if num_agents_iter == gameState.getNumAgents():
-            # print(index)
             return self.maxVal(gameState, self.index, depth + 1, 0)
         else:
             if index >= max_agents:
@@ -195,8 +189,10 @@ class OffenseAgent(minimaxCaptureAgent):
 
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
-        self.weights = {"foodWeight": 1.7, "ghostWeight": 1.2, "capsuleWeight": 0.5}
-
+        self.weights = {"foodWeight": 1.7,
+                "ghostWeight": 1.2,
+                "capsuleWeight": 0.5, 
+                "timeWeight": .5}
     def getFoodScore(self, gameState, position):
         """
         Calculate a heuristic score based on the amount and proximity of food.
@@ -277,6 +273,8 @@ class OffenseAgent(minimaxCaptureAgent):
             ghostPos = gState.getPosition()
             gDistance = self.getMazeDistance(position, ghostPos)
             gScare = gState.getScaredTimer()  # get if/how long the ghost is scared
+            if gScare > 0:
+                ghostScore += 15  # Incentivize having scared ghosts
             if (
                 gScare < gDistance
             ):  # The ghost is scared for less turns than it takes to get to
@@ -326,15 +324,17 @@ class OffenseAgent(minimaxCaptureAgent):
         foodScore = self.getFoodScore(currentGameState, position)
         ghostScore = self.getGhostScore(currentGameState, position)
         capScore = self.getCapsuleScore(currentGameState, position)
-        # print(f"FoodScore: {foodScore}, ghostScore: {ghostScore}, capScore: {capScore}")
-        # print("Score: ", currentGameState.getScore())
+        timeScore = self.getTimeScore(currentGameState)
         score = (
-            self.weights["foodWeight"] * foodScore
-            + self.weights["capsuleWeight"] * capScore
-            + self.weights["ghostWeight"] * ghostScore
+            self.getWeight("foodWeight") * foodScore
+            + self.getWeight("capsuleWeight") * capScore
+            + self.getWeight("ghostWeight") * ghostScore
+            + self.getWeight("timeWeight") * timeScore
         )  # add all scores together
-
         return score
+
+    def getWeight(self, key):
+        return self.weights.get(key, 1.0)
     
     def getClosestEnemy(self, position, ls):
         '''
@@ -351,6 +351,9 @@ class OffenseAgent(minimaxCaptureAgent):
                     self.getMazeDistance(position, item.getPosition())
             )
         return closest
+
+    def getTimeScore(self, gameState):
+        return -(1200 - gameState.getTimeleft())
 
 
 class DefenseAgent(minimaxCaptureAgent):
