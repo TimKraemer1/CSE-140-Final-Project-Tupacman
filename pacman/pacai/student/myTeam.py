@@ -170,6 +170,16 @@ class minimaxCaptureAgent(CaptureAgent):
             states.append(gameState.getAgentState(agent))
         return states
 
+    def isEnemyInBase(self, gameState):
+        """Finds nearest ghost and adds a score based on distance from ghost"""
+        enemyAgents = self.getEnemyAgentStates(gameState)
+        invaders = [
+            a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
+        ]
+        if len(invaders) > 0:
+            return True
+        return False
+
 
 class OffenseAgent(minimaxCaptureAgent):
     """
@@ -276,7 +286,8 @@ class OffenseAgent(minimaxCaptureAgent):
                     ghostScore -= 50  # Should hopefully fix it from staying in the same spot looking at an enemy ghost
                 else:
                     ghostScore -= 30
-        
+        if self.isEnemyInBase(gameState):
+            ghostScore -= self.A_BIG_NUMBER  # If possible,  the offense agent should also hit a nearby pacman
         return ghostScore
 
     def getCapsuleScore(self, gameState, position):
@@ -375,16 +386,6 @@ class DefenseAgent(minimaxCaptureAgent):
         #     f"current score {score}, eScore: {self.getEnemyScore(position, currentGameState)}, foodDef: {self.getFoodDefendingScore(currentGameState)}"
         # )
         return score
-
-    def isEnemyInBase(self, gameState):
-        """Finds nearest ghost and adds a score based on distance from ghost"""
-        enemyAgents = self.getEnemyAgentStates(gameState)
-        invaders = [
-            a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
-        ]
-        if len(invaders) > 0:
-            return True
-        return False
 
     def getEnemyScore(self, position, gameState):
         """Finds nearest ghost and adds a score based on distance from ghost"""
