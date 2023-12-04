@@ -70,9 +70,6 @@ class minimaxCaptureAgent(CaptureAgent):
                 next_move.append(a)
         return random.choice(next_move)
 
-        # print("val", val, "going", action)
-        return action
-
     def alphaBeta(self, gameState, index, depth, num_agents_iter):
         if depth == self.max_depth or gameState.isOver():
             return self.evaluationFunction(gameState)
@@ -109,8 +106,11 @@ class minimaxCaptureAgent(CaptureAgent):
                 best_action = action
                 if value >= self.beta:
                     break
-                self.alpha = max(self.alpha, best_value)
+                self.updateAlpha(best_value)
         return best_value
+    
+    def updateAlpha(self, val):
+        self.alpha = max(self.alpha, val)
 
     def minVal(self, gameState, index, depth, num_agents_iter):
         max_agents = gameState.getNumAgents()
@@ -130,8 +130,11 @@ class minimaxCaptureAgent(CaptureAgent):
                 worst_action = action
                 if value <= self.alpha:
                     break
-                self.beta = min(worst_value, self.beta)
+                self.updateBeta(worst_value)
         return worst_value
+
+    def updateBeta(self, val):
+        self.beta = min(self.beta, val)
 
     def evaluationFunction(self, currentGameState):
         return currentGameState.getScore()
@@ -173,6 +176,23 @@ class minimaxCaptureAgent(CaptureAgent):
             states.append(gameState.getAgentState(agent))
         return states
 
+class ExpectimaxAgent(minimaxCaptureAgent):
+    
+    def updateAlpha(self, val):
+        pass
+    
+    def updateBeta(self, val):
+        pass
+
+    
+    def minVal(self, gameState, index, depth, num_agents_iter):
+        score = 0
+        actions = gameState.getLegalActions(index)
+        for a in actions:
+            successor = gameState.generateSuccessor(index, a)     
+            temp = self.alphaBeta(successor, index + 1, depth, num_agents_iter)
+            score += temp * (1/len(actions))
+        return score
 
 class OffenseAgent(minimaxCaptureAgent):
     """
@@ -183,7 +203,6 @@ class OffenseAgent(minimaxCaptureAgent):
     def __init__(self, index, **kwargs):
         super().__init__(index, **kwargs)
         self.weights = {"foodWeight": 1.7, "ghostWeight": 1.2, "capsuleWeight": 0.5}
-
     def getFoodScore(self, gameState, position):
         """
         Calculate a heuristic score based on the amount and proximity of food.
@@ -269,7 +288,7 @@ class OffenseAgent(minimaxCaptureAgent):
             ):  # The ghost is scared for less turns than it takes to get to
                 ghostScore -= 30 / gDistance
             else:
-                ghostScore += 10 / gDistance
+                ghostScore += 20 / gDistance
             if gDistance < 5 and gScare <= gDistance:
                 if (
                     gameState.isOnRedSide(ghostPos) and gameState.isOnBlueSide(position)
@@ -339,7 +358,7 @@ class OffenseAgent(minimaxCaptureAgent):
         return closest
 
 
-class DefenseAgent(minimaxCaptureAgent):
+class DefenseAgent(OffenseAgent):
     """Defends team side from enemy pacmans"""
 
     def __init__(self, index, **kwargs):
@@ -356,6 +375,16 @@ class DefenseAgent(minimaxCaptureAgent):
         """
         position = currentGameState.getAgentPosition(self.index)
         agentState = currentGameState.getAgentState(self.index)
+        if agentState.isScaredGhost():
+            return super().evaluationFunction(currentGameState)
+        
+        enemyAgents = self.getEnemyAgentStates(currentGameState)
+        defenders = [
+            a for a in enemyAgents if a.isGhost() and a.getPosition() is not None
+        ]
+        if not self.isEnemyInBase(currentGameState) and self.getClosestEnemy(agentState.getPosition(), defenders) > 15:
+            print("Used offense eval in def")
+            return super().evaluationFunction(currentGameState)
         score = 0
         if self.isEnemyInBase(currentGameState):
             if agentState.isPacman():
@@ -369,14 +398,8 @@ class DefenseAgent(minimaxCaptureAgent):
         if agentState.isGhost():
             score += 1
             score += self.getEnemyScore(position, currentGameState)
-            # print("Test!!!!")
         if self.respawned(currentGameState):
-            #    print("RESPAWNED")
             score = -self.A_BIG_NUMBER
-        # print(f"is pacman: {agentState.isPacman()}")
-        # print(
-        #     f"current score {score}, eScore: {self.getEnemyScore(position, currentGameState)}, foodDef: {self.getFoodDefendingScore(currentGameState)}"
-        # )
         return score
 
     def isEnemyInBase(self, gameState):
@@ -392,10 +415,7 @@ class DefenseAgent(minimaxCaptureAgent):
     def getEnemyScore(self, position, gameState):
         """Finds nearest ghost and adds a score based on distance from ghost"""
         agentState = gameState.getAgentState(self.index)
-        enemyAgents = [
-            gameState.getAgentState(enemyIdx)
-            for enemyIdx in self.getOpponents(gameState)
-        ]
+        enemyAgents = self.getEnemyAgentStates(gameState)
         invaders = [
             a for a in enemyAgents if a.isPacman() and a.getPosition() is not None
         ]
