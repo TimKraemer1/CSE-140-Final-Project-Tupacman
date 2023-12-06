@@ -223,11 +223,17 @@ class OffenseAgent(minimaxCaptureAgent):
         closestCapsule = self.getNearestCapsule(gameState, position)
 
         foodScore = 0
-        numFood = self.getFood(gameState).asList()
+        if gameState.isOnRedTeam(self.index):
+            numFood = gameState.getBlueFood().asList()
+        else:
+            numFood = gameState.getRedFood().asList()
         oldNumFood = None
         oldState = self.getPreviousObservation()
         if oldState is not None:
-            oldNumFood = self.getFood(oldState).asList()
+            if gameState.isOnRedTeam(self.index):
+                oldNumFood = oldState.getBlueFood().asList()
+            else:
+                oldNumFood = oldState.getRedFood().asList()
         if oldNumFood is not None and len(numFood) < len(oldNumFood):
             foodScore += (
                 self.A_BIG_NUMBER
