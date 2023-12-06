@@ -53,7 +53,7 @@ class minimaxCaptureAgent(CaptureAgent):
         # Your initialization code goes here, if you need any.
 
     def chooseAction(self, gameState):
-        next_move = []
+        next_move = None
         best_a_utility = float("-inf")
         legal_actions = gameState.getLegalActions(self.index)
         for a in legal_actions:
@@ -64,13 +64,22 @@ class minimaxCaptureAgent(CaptureAgent):
             self.alpha = float("-inf")
             self.beta = float("inf")
             utility = self.alphaBeta(new_state, self.index, 0, 0)
-            if utility > best_a_utility:
+
+            #removed temporarily, come up with solution tomorrow?
+            
+            """ if utility > best_a_utility:
                 next_move.clear()
                 next_move.append(a)
                 best_a_utility = utility
             elif utility == best_a_utility:
-                next_move.append(a)
-        return random.choice(next_move)
+                next_move.append(a) """
+
+            if utility >= best_a_utility:
+                next_move = a
+                best_a_utility = utility
+        return next_move
+
+        #return random.choice(next_move)
 
         return action
 
